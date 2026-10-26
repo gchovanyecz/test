@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: room-booking
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/roombooking}
+    username: ${DB_USERNAME:roombooking}
+    password: ${DB_PASSWORD:roombooking}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
