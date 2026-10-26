@@ -3,6 +3,8 @@ package hu.gchovanyecz.roombooking.common.web;
 import java.util.List;
 
 import hu.gchovanyecz.roombooking.booking.service.BookingConflictException;
+import hu.gchovanyecz.roombooking.booking.service.BookingValidationException;
+import hu.gchovanyecz.roombooking.common.exception.FieldViolation;
 import hu.gchovanyecz.roombooking.common.exception.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,6 +49,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return problem;
 	}
 
+	@ExceptionHandler(BookingValidationException.class)
+	ProblemDetail handleBookingValidation(BookingValidationException ex) {
+		ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+		problem.setProperty("errors", ex.getViolations());
+		return problem;
+	}
+
 	/**
 	 * The service checks for overlaps first, but two concurrent requests can both pass that check;
 	 * the database exclusion constraint then rejects the second one, which is still a booking conflict.
@@ -73,15 +83,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return handleExceptionInternal(ex, problem, headers, status, request);
 	}
 
-	private static List<ValidationError> fieldErrors(MethodArgumentNotValidException ex) {
+	@Override
+	protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex,
+			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+		ProblemDetail problem = ProblemDetail.forStatusAndDetail(status,
+				"A kérés törzse nem olvasható (hibás JSON vagy érvénytelen dátumformátum).");
+		return handleExceptionInternal(ex, problem, headers, status, request);
+	}
+
+	private static List<FieldViolation> fieldErrors(MethodArgumentNotValidException ex) {
 		return ex.getBindingResult().getAllErrors().stream()
-			.map(error -> new ValidationError(
+			.map(error -> new FieldViolation(
 					error instanceof FieldError fieldError ? fieldError.getField() : error.getObjectName(),
 					error.getDefaultMessage()))
 			.toList();
-	}
-
-	record ValidationError(String field, String message) {
 	}
 
 }

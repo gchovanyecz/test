@@ -127,3 +127,55 @@ Az AI ezek alapján frissítette a jegyeket és az áttekintő jegyet.
 **Eredmény:** `./mvnw verify` zöld, 20 teszt.
 
 **Hiba és javítás:** az AI `git add -A`-val véletlenül commitolta a frontend segéd munkakönyvtárát (`.claude/worktrees/...`, beágyazott git repóként). A commit átírását (force push) a Claude Code jogosultságkezelése nem engedte, ezért egy külön javító commit vette ki a fájlt, és a `.claude/` mappa bekerült a `.gitignore`-ba. Tanulság: a commitok előtt a `git status` kimenetét ellenőrizni kell.
+
+---
+
+## 8. #9 Frontend váz, AI-segéddel (2026-10-26)
+
+**AI (segéd):**
+- Angular 22.2.4-gyel, Node 24-en elkészítette a frontend vázat:
+  - API service-ek, modellek, dev proxy;
+  - navigáció három oldallal;
+  - globális hibaértesítés (interceptor és toast);
+  - saját CSS változókkal;
+  - 10 unit teszt.
+- A fő AI átnézte: a teszteket és a buildet maga is lefuttatta, és átnézte a kódot.
+- **Megjegyzés:** a segéd egy kisebb modellen (Haiku 5.5) futott, mégis „Claude Opus 5.5” `Co-Authored-By` jelöléssel commitolt, mert a fő AI így kérte. A jelölés ezért pontatlan lehet. Javítani csak force push-sal lehetne, ami nem engedélyezett.
+- Nyitott pont a #11-hez: a globális hibaértesítés a 400-as validációs hibáknál is megjelenik, ezt az űrlapnál ki kell kapcsolni, hogy ne legyen dupla üzenet.
+
+---
+
+## 9. #4 Foglalás leadása, párhuzamosan a #10 és #13 segédekkel (2026-10-26)
+
+**Prompt:** „mindkét PR-t beengedtem.”
+
+**AI:**
+- Két független jegyet segédekre bízott, mindegyiket saját munkapéldányban:
+  - **#13 Docker:** csak új fájlokat érint;
+  - **#10 frontend listák:** csak a frontendet érinti.
+- A segédek pontos utasítást kaptak, hogy mely fájlokhoz nem nyúlhatnak, és hogy csak a szándékolt fájlokat commitolják (a #3-nál történt véletlen commit tanulsága).
+- A #4-et maga csinálta:
+  - **`BookingTimeRules`:** az időszabályokat a service ellenőrzi:
+    - nem kezdődhet a múltban;
+    - 15 perces időrácson kell lennie;
+    - a kezdés a befejezés előtt van;
+    - legalább 15 perc, legfeljebb 8 óra.
+    Minden megszegett szabályt egyszerre jelez, mezőnként. A határértékek az `application.yml`-ből jönnek (`booking.rules.*`), az aktuális időt egy injektált `Clock` adja.
+  - **Ütközés:** a `findOverlapping` lekérdezés feltétele `start < új.vége ÉS vége > új.kezdete`. Ütközés esetén 409, az ütköző foglalás adataival. A mentés azonnal flush-ol, hogy a DB exclusion constraint sértése is 409-ként jöjjön vissza.
+  - **Hibaüzenet:** a hibás JSON-ra adott válasz angol volt („Failed to read request”). Ezt magyarra cserélte, mert a frontend ezt mutatja a felhasználónak.
+- Tesztek:
+  - a szabályok rögzített órával (10);
+  - a service Mockitóval (5);
+  - a controller (7);
+  - integrációs tesztek valódi PostgreSQL-lel (3), köztük annak ellenőrzése, hogy a DB-szabály sértésekor a hibaüzenet tartalmazza a constraint nevét.
+- Az első futásnál 2 teszt elbukott (Mockito: mock létrehozása egy másik stubbing belsejében), ezért valódi `Room` objektumokra cserélte a mockot.
+- Élő ellenőrzés `curl`-lel:
+  - sikeres foglalás: 201 és `Location` fejléc;
+  - ütközés: 409;
+  - egymás utáni foglalás: 201;
+  - rácson kívüli időpont: 400;
+  - múltbeli időpont: 400;
+  - nem létező tárgyaló: 404;
+  - hibás dátum: 400.
+
+**Eredmény:** `./mvnw verify` zöld, 45 teszt.
