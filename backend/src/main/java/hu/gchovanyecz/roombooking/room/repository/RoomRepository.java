@@ -1,0 +1,12 @@
+package hu.gchovanyecz.roombooking.room.repository;
+
+import java.util.List;
+
+import hu.gchovanyecz.roombooking.room.domain.Room;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface RoomRepository extends JpaRepository<Room, Long> {
+
+	List<Room> findAllByOrderByNameAsc();
+
+}

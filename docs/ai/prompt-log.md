@@ -65,3 +65,25 @@ Az AI ezek alapján frissítette a jegyeket és az áttekintő jegyet.
 - Ellenőrizte, hogy a build és a teszt lefut, az alkalmazás elindul, és a `/actuator/health` UP választ ad.
 
 **Döntésem:** Java 25 (legfrissebb LTS), brew-val telepítve, csak ehhez a projekthez.
+
+---
+
+## 5. #2 Adatmodell, migrációk és fix tárgyalólista (2026-10-26)
+
+**Prompt:** „kész beengedtem a #18-at.” (A korábbi megállapodás szerint ezután jön a #2.)
+
+**AI:**
+- Három Flyway migrációt írt:
+  - `room` tábla, egyedi névvel és pozitív kapacitással;
+  - `booking` tábla, `start_time < end_time` ellenőrzéssel és **exclusion constraint**-tel (`btree_gist`, félig nyitott `tstzrange '[)'`);
+  - seed 5 tárgyalóval.
+- JPA entitásokat (`Room`, `Booking`) és repository-kat készített. A `Room` csak olvasható (nincs setter, nincs publikus konstruktor), mert a tárgyalólista fix.
+- Integrációs teszteket írt valódi PostgreSQL-lel (Testcontainers), amelyek ellenőrzik:
+  - a seed tárgyalók jelenlétét;
+  - az entitás-leképezést;
+  - hogy az átfedő foglalást közvetlen SQL insertnél is elutasítja az adatbázis;
+  - hogy az egymás utáni foglalások és a más tárgyalóban lévő foglalások megengedettek;
+  - a fordított időintervallum elutasítását.
+- A tesztkonfigurációt publikussá tette, hogy más csomagok tesztjei is használhassák (ezt az első fordítási hiba mutatta meg).
+
+**Eredmény:** `./mvnw verify` zöld, 7 teszt.
