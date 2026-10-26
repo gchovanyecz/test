@@ -1,0 +1,35 @@
+<section class="page">
+  <h1>Tárgyalók</h1>
+
+  @if (status() === 'loading') {
+    <p class="state" role="status">Betöltés…</p>
+  } @else if (status() === 'error') {
+    <div class="state state--error" role="alert">
+      <p>A tárgyalókat nem sikerült betölteni.</p>
+      <button type="button" class="retry" (click)="load()">Újrapróbálás</button>
+    </div>
+  } @else if (rooms().length === 0) {
+    <p class="state">Nincs megjeleníthető tárgyaló.</p>
+  } @else {
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Név</th>
+            <th scope="col">Kapacitás</th>
+            <th scope="col">Helyszín</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (room of rooms(); track room.id) {
+            <tr>
+              <td>{{ room.name }}</td>
+              <td>{{ room.capacity }} fő</td>
+              <td>{{ room.location }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
