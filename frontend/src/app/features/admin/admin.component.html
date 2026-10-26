@@ -1,0 +1,90 @@
+<section class="page">
+  <h1>Adminisztráció</h1>
+  <p class="notice">
+    Ez az adminisztrációs felület. Itt az összes foglalás látható, és innen törölhetők; a törlés nem
+    vonható vissza.
+  </p>
+
+  @if (status() === 'loading') {
+    <p class="state" role="status">Betöltés…</p>
+  } @else if (status() === 'error') {
+    <div class="state state--error" role="alert">
+      <p>A foglalásokat nem sikerült betölteni.</p>
+      <button type="button" class="button" (click)="load()">Újrapróbálás</button>
+    </div>
+  } @else if (bookings().length === 0) {
+    <p class="state">Nincs foglalás</p>
+  } @else {
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Cím</th>
+            <th scope="col">Tárgyaló</th>
+            <th scope="col">Dátum</th>
+            <th scope="col">Időpont</th>
+            <th scope="col">Létrehozva</th>
+            <th scope="col">Művelet</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (booking of bookings(); track booking.id) {
+            <tr>
+              <td [class.table__placeholder]="!booking.title?.trim()">
+                {{ displayTitle(booking.title) }}
+              </td>
+              <td>{{ booking.roomName }}</td>
+              <td>
+                <time [attr.datetime]="booking.startTime">{{ formatDate(booking.startTime) }}</time>
+              </td>
+              <td>{{ formatTimes(booking.startTime, booking.endTime) }}</td>
+              <td>
+                <time [attr.datetime]="booking.createdAt">{{
+                  formatCreatedAt(booking.createdAt)
+                }}</time>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="button button--danger"
+                  [disabled]="isDeleting(booking.id)"
+                  [attr.aria-label]="'Törlés: ' + displayTitle(booking.title)"
+                  (click)="openDeleteDialog(booking)"
+                >
+                  Törlés
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
+
+<dialog
+  #confirmDialog
+  class="dialog"
+  aria-labelledby="delete-dialog-title"
+  aria-describedby="delete-dialog-text"
+  (close)="onDialogClosed()"
+>
+  @if (pendingDelete(); as booking) {
+    <h2 id="delete-dialog-title" class="dialog__title">Foglalás törlése</h2>
+    <p id="delete-dialog-text">Biztosan törli ezt a foglalást? A törlés nem vonható vissza.</p>
+    <dl class="dialog__details">
+      <dt>Cím</dt>
+      <dd>{{ displayTitle(booking.title) }}</dd>
+      <dt>Tárgyaló</dt>
+      <dd>{{ booking.roomName }}</dd>
+      <dt>Dátum</dt>
+      <dd>{{ formatDate(booking.startTime) }}</dd>
+      <dt>Időpont</dt>
+      <dd>{{ formatTimes(booking.startTime, booking.endTime) }}</dd>
+    </dl>
+    <div class="dialog__actions">
+      <button type="button" class="button" autofocus (click)="cancelDelete()">Mégse</button>
+      <button type="button" class="button button--danger" (click)="confirmDelete()">Törlés</button>
+    </div>
+  }
+</dialog>
