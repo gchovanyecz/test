@@ -163,14 +163,15 @@ A backend funkció szerinti csomagokra oszlik (`room`, `booking`), mindkettő ug
 | `domain` | JPA-entitások (`Room`, `Booking`); nem hagyják el a backendet |
 | `dto` | a kérés- és válaszrekordok |
 
-A `common` csomag a közös részeket tartalmazza: a `config` a `Clock`-ot, az `exception` és a `web` a `GlobalExceptionHandler`-t, amely a kivételeket ProblemDetail válasszá alakítja. A séma Flyway migrációkban van (`db/migration`): tárgyalók, foglalások exclusion constraint-tel, és öt kezdő tárgyaló.
+A `common` csomag a közös részeket tartalmazza: a `config` a `Clock`-ot és az OpenAPI-leírást, az `exception` és a `web` a `GlobalExceptionHandler`-t, amely a kivételeket ProblemDetail válasszá alakítja. A séma Flyway migrációkban van (`db/migration`): tárgyalók, foglalások exclusion constraint-tel, és öt kezdő tárgyaló.
 
-### Miért kétszer védett az ütközés?
+### Hogyan védett az ütközés párhuzamos kéréseknél is?
 
-1. **Service-szintű ellenőrzés** (`BookingService.create`): érthető 409-et ad, a válaszban az ütköző foglalás adataival.
-2. **Adatbázis-szintű exclusion constraint** (`booking_no_overlap`, `EXCLUDE USING gist`, `tstzrange(..., '[)')`, a `btree_gist` extensionnel): párhuzamos kérések esetén is garantálja, hogy nem jön létre átfedő foglalás.
+1. **A tárgyaló sorának zárolása** (`RoomRepository.findByIdForUpdate`, `SELECT … FOR UPDATE`): a `BookingService.create` először ezt kéri le. Az ugyanarra a tárgyalóra érkező foglalások így sorban futnak; a más tárgyalókra érkezők nem várnak egymásra.
+2. **Service-szintű ütközésvizsgálat** (`BookingRepository.findOverlapping`): a zárolás miatt a második kérés már látja az első foglalását, és érthető 409-et kap, a válaszban az ütköző foglalás adataival.
+3. **Adatbázis-szintű exclusion constraint** (`booking_no_overlap`, `EXCLUDE USING gist`, `tstzrange(..., '[)')`, a `btree_gist` extensionnel): végső garancia, hogy semmilyen úton (pl. közvetlen SQL) ne jöhessen létre átfedő foglalás. Ha mégis sérülne, a `GlobalExceptionHandler` ezt is 409-ként adja vissza.
 
-Az egyik nem elég: két kérés egyszerre mehet át a service-ellenőrzésen, és csak az adatbázis állítja meg a másodikat. Az adatbázis hibáját a `GlobalExceptionHandler` ugyanúgy 409-ként adja vissza, csak általános üzenettel, mert az ütköző foglalás adatai ekkor már nem ismertek.
+Miért kell a zárolás? Az első változat csak a 2. és 3. pontra épült. A párhuzamos teszt (`BookingConcurrencyTests`) kimutatta, hogy ha több kérés egyszerre szúr be ütköző foglalást, a PostgreSQL az exclusion constraint ellenőrzésekor holtpontot (deadlock) észlel, és a vesztes kérések 500-at kapnak. Átfedő foglalás nem jött létre, de a válasz hibás volt. A zárolás óta pontosan egy kérés kap 201-et, a többi 409-et.
 
 ### Frontend
 
@@ -222,23 +223,26 @@ A frontend részletei a [frontend/README.md](frontend/README.md) fájlban vannak
 
 ## Tesztek
 
-A számok a `main` jelenlegi állapotán mért értékek; a tesztek bővülhetnek.
-
-**Backend** (JUnit 5, Spring Boot test, Testcontainers PostgreSQL): **62 teszt, mind zöld** (`./mvnw verify`)
+**Backend** (JUnit 5, Spring Boot test, Testcontainers PostgreSQL): **81 teszt, mind zöld** (`./mvnw verify`)
 
 | Terület | Teszt osztály | Mit ellenőriz |
 |---|---|---|
 | Időszabályok | `BookingTimeRulesTests` | időtartam, időrács, múltbeli kezdés, több megszegett szabály egyszerre, időzóna-eltolás |
-| Ütközés | `BookingServiceIntegrationTests` | átfedés elutasítása, egymás utáni foglalás engedélyezése, az adatbázis-constraint neve a hibakezelőnek |
+| Ütközési esetek | `BookingOverlapIntegrationTests` | valódi adatbázison: átfedés az elején és a végén, tartalmazás mindkét irányban, azonos intervallum, szomszédos és távoli foglalás, más tárgyaló, a legkorábbi ütközés jelentése |
+| Párhuzamosság | `BookingConcurrencyTests` | 8 kliens egyszerre foglalja ugyanazt az idősávot HTTP-n át: pontosan egy 201, a többi 409 |
+| Ütközés | `BookingServiceIntegrationTests`, `BookingServiceTests` | átfedés elutasítása, egymás utáni foglalás engedélyezése, az adatbázis-constraint neve a hibakezelőnek |
 | Adatbázis | `BookingSchemaTests` | átfedő insert közvetlen SQL-lel hibát dob, más tárgyalóban engedélyezett, `start < end` constraint |
 | Lekérdezés | `BookingQueryIntegrationTests` | rendezés, szűrés tárgyalóra és időszakra, ismeretlen tárgyaló, törlés után felszabadul az idősáv |
 | API | `BookingControllerTests`, `AdminBookingControllerTests`, `RoomControllerTests` | HTTP-státuszok és válaszformátum |
 | Hibakezelés | `GlobalExceptionHandlerTests` | ProblemDetail-válaszok |
+| API-dokumentáció | `OpenApiDocumentationTests` | az OpenAPI-leírás címe, tagjei, útvonalai és a hibaválaszok sémája |
 | Alkalmazás | `RoomBookingApplicationTests` | a Spring-kontextus felépül |
 
 **Frontend** (Vitest): **77 teszt, 11 fájl, mind zöld** (`npm test`). Az API-szolgáltatások, a hibainterceptor, a formázó függvények, a foglalási űrlap validációja és az oldalkomponensek (tárgyalók, foglalások, admin) tesztjei futnak.
 
 Egyszeri futtatás CI-módban: `npm test`. Fejlesztés közben: `npm run test:watch`.
+
+**CI** (GitHub Actions, `.github/workflows/ci.yml`): minden pull requestnél és a `main`-re pusholáskor lefut a backend `./mvnw verify`, a frontend `npm test` + `npm run build`, és a `docker compose build`.
 
 ## Projektstruktúra
 
@@ -252,6 +256,7 @@ Egyszeri futtatás CI-módban: `npm test`. Fejlesztés közben: `npm run test:wa
 │   └── src/main/resources/db/migration/   Flyway migrációk
 ├── frontend/                Angular alkalmazás (és a saját README-je)
 ├── docs/ai/                 AI-használat dokumentációja és prompt-napló
+├── .github/workflows/       CI (GitHub Actions)
 ├── docker-compose.yml       db, backend, frontend
 └── README.md
 ```
