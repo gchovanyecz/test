@@ -1,0 +1,48 @@
+# Fixed project name, so the containers and volume do not depend on the checkout directory name
+name: room-booking
+
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: roombooking
+      POSTGRES_USER: roombooking
+      POSTGRES_PASSWORD: roombooking
+    volumes:
+      # PostgreSQL 18 stores data in a version subdirectory, so mount the parent directory
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roombooking -d roombooking"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/roombooking
+      DB_USERNAME: roombooking
+      DB_PASSWORD: roombooking
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    # The JRE image has busybox wget but no curl
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  db-data:
