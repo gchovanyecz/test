@@ -251,3 +251,48 @@ Az AI ezek alapján frissítette a jegyeket és az áttekintő jegyet.
 **Tanulság:** a korábbi PR-ok azt állították, hogy a DB-szabály „párhuzamos kérésnél is 409-et ad”. Ez csak részben volt igaz: az ütközés valóban nem jött létre, de a válasz 500 lett. Ezt csak a valódi párhuzamos teszt mutatta ki.
 
 **Eredmény:** `./mvnw verify` zöld, 78 teszt.
+
+---
+
+## 13. Segédek eredményei: #7, #14, #16 (2026-10-27)
+
+**AI (segédek, Haiku 5.5):**
+- **#16 CI:**
+  - GitHub Actions három jobbal: backend `verify`, frontend teszt és build, Docker build;
+  - minimális jogosultságok;
+  - az elavult futásokat az újabbak megszakítják.
+
+  Az első futás zöld volt.
+- **#14 README:** élő Docker-futtatásból vett valódi példaválaszokkal. A fő AI átnézte, és jelezte, hogy a #8 javítása és az új tesztszámok még nincsenek benne; ezeket a záró PR-ban pótolta.
+- **#7 Swagger:**
+  - magyar API-leírás;
+  - egy `OpenApiCustomizer` minden 4xx/5xx válaszhoz ProblemDetail sémát rendel, példákkal a 400-as és a 409-es válaszra;
+  - dokumentációs teszt.
+
+  A fő AI a teszteket a PR branchén maga is lefuttatta (66 zöld), és átolvasta a customizert.
+
+---
+
+## 14. Végső ellenőrzés és záró dokumentáció (2026-10-27)
+
+**Prompt:** „Beengedtem a #29, #30, #31 és #32 PR-t, jöhet a záró dokumentáció és a végső ellenőrzés.”
+
+**AI:**
+- **CI a `main`-en:** zöld a legutóbbi merge commiton (30e0c6f).
+- **Tiszta klón, Docker:**
+  - friss `git clone`, `docker compose build --no-cache`, majd `up`: 39 másodperc alatt mindhárom szolgáltatás fut. A base image-ek a gépen már le voltak töltve; egy teljesen új gépen ez tovább tart.
+- **Böngészős végigkattintás** (Claude beépített böngészője):
+  - **foglalás az űrlapon:** „Foglalás rögzítve.”, a listában helyi idővel (2026. november 3., kedd, 09:00–10:00);
+  - **ütköző foglalás:** az űrlapon a 409-es üzenet az ütköző foglalás idejével, dupla értesítés nélkül;
+  - **10:10-es kezdés:** a mező alatt hibaüzenet, a gomb letiltva;
+  - **szűrő:** második foglalás Debrecenbe, Budapestre szűrve csak a Budapest foglalása látszik (`?roomId=1`);
+  - **admin:** a megerősítő ablak Esc-re bezárul, jóváhagyás után a törlés működik („Foglalás törölve.”);
+  - **tárgyalók oldal:** 5 tárgyaló;
+  - **Swagger UI:** betölt a magyar leírással;
+  - **leállított backend:** oldalon belüli hibaüzenet „Újrapróbálás” gombbal, mellette globális értesítés.
+- Utána `docker compose down -v`.
+- **Záró dokumentáció:**
+  - README: a párhuzamos foglalás védelmének leírása a zárolással, tesztszámok (backend 81, frontend 77), CI;
+  - `docs/ai/README.md` véglegesítése: eszközök és modellek, munkafolyamat, a folyamat által elkapott hibák.
+
+**Eredmény:** a feladat 1–10. követelménye teljesül, és ellenőrizve van. Egy dolog marad: a session-átiratot nekem kell exportálnom a Claude Code `/export` parancsával a `docs/ai/sessions/` mappába, mert ezt a parancsot az AI nem tudja futtatni.
