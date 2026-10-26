@@ -87,3 +87,24 @@ Az AI ezek alapján frissítette a jegyeket és az áttekintő jegyet.
 - A tesztkonfigurációt publikussá tette, hogy más csomagok tesztjei is használhassák (ezt az első fordítási hiba mutatta meg).
 
 **Eredmény:** `./mvnw verify` zöld, 7 teszt.
+
+---
+
+## 6. #6 Egységes hibakezelés, párhuzamosan a #9 frontend vázzal (2026-10-26)
+
+**Prompt:** „kész beengedtem a #19-et.”
+
+**AI:**
+- A függőségek alapján a #6-ot vette előre, mert a #3–#5 erre épül.
+- A frontend vázat (#9) egy külön AI-segédre (subagent) bízta, saját munkapéldányban. A segéd megállt, mert a legfrissebb Angular (22.2.4) Node 22.22.3+ verziót kér, a gépen pedig 22.15.1 van. Az utasítás szerint nem telepített és nem kerülte meg a korlátot, hanem jelentett. A döntés az enyém.
+- `GlobalExceptionHandler` (`@RestControllerAdvice`, a `ResponseEntityExceptionHandler` kiterjesztése):
+  - minden hiba RFC 9457 `application/problem+json` formában jön vissza;
+  - 404: nem létező tárgyaló vagy foglalás (közös `ResourceNotFoundException` ős);
+  - 409: ütköző foglalás, a válaszban az ütköző foglalás azonosítójával és idejével;
+  - 409: az adatbázis `booking_no_overlap` szabályának sértése (párhuzamos kérések esetére);
+  - 400: validációs hiba mezőnkénti `errors` listával; hibás JSON;
+  - 500: váratlan hiba, belső részletek nélkül, a részletek a logba kerülnek.
+- A hibaüzenetek magyarok, mert a frontend ezeket mutatja a felhasználónak.
+- Tesztek: standalone MockMvc egy csak tesztben létező controllerrel. Az első futásnál mind a 7 teszt 404-et kapott, mert a teszt-controllerről lehagyta a `@RestController` annotációt (attól tartott, hogy más tesztek is felszednék). Kiderült, hogy a Spring Boot a tesztosztályok belső osztályait eleve kizárja a szkennelésből, ezért visszatette.
+
+**Eredmény:** `./mvnw verify` zöld, 14 teszt.
