@@ -10,6 +10,12 @@ spring:
     hibernate:
       ddl-auto: validate
 
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    try-it-out-enabled: true
+
 management:
   endpoints:
     web:
