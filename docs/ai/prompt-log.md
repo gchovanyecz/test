@@ -179,3 +179,25 @@ Az AI ezek alapján frissítette a jegyeket és az áttekintő jegyet.
   - hibás dátum: 400.
 
 **Eredmény:** `./mvnw verify` zöld, 45 teszt.
+
+---
+
+## 10. #5 Foglalások listázása és admin törlés, párhuzamosan a #11 és #12 segédekkel (2026-10-26)
+
+**Prompt:** „beengedtem a két PR-t”
+
+**AI:**
+- A két frontend jegyet (#11 űrlap, #12 admin nézet) két segédre bízta, pontos fájlhatárokkal, hogy ne ütközzenek. A #11 kapta az interceptor módosítását: egy kapcsolót, amellyel az űrlap kikapcsolhatja a globális hibaértesítést, és a hibákat a mezők alatt mutathatja.
+- A #5-öt maga csinálta:
+  - `GET /api/bookings`:
+    - kezdési idő szerint rendezve;
+    - opcionális `roomId`, `from` és `to` szűrés, a [from, to) időszakkal átfedő foglalásokra;
+    - nem létező tárgyaló → 404, üres időszak → 400.
+  - `GET /api/bookings/{id}`: 404, ha nincs ilyen foglalás.
+  - `DELETE /api/admin/bookings/{id}`: külön `AdminBookingController`, `Admin` taggel. 204, illetve 404.
+- A szűrés Spring Data Specificationökkel működik.
+  - A Spring Data JPA 4 nem garantálja a `null` specification kezelését, ezért az AI a lefordított könyvtárból (`javap`) ellenőrizte, hogy van-e `Specification.unrestricted()`, és azt használta.
+  - Az `@EntityGraph` egy lekérdezéssel tölti be a tárgyalót is, így a listázás nem indít foglalásonként külön lekérdezést (N+1).
+- Élő ellenőrzés: a 8080-as portot a Docker segéd compose-a foglalta, ezért az alkalmazás a 18080-as porton futott. Így derült ki, hogy a nyilvános útvonalon a `DELETE` valójában 405-öt ad, a teszt viszont 404-et várt. A teszt hamisan ment át, mert csak az admin controller töltődött be. Javítva.
+
+**Eredmény:** `./mvnw verify` zöld, 62 teszt.

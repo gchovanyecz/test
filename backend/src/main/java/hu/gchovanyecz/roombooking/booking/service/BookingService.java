@@ -1,16 +1,24 @@
 package hu.gchovanyecz.roombooking.booking.service;
 
+import java.time.Instant;
 import java.util.List;
 
 import hu.gchovanyecz.roombooking.booking.domain.Booking;
 import hu.gchovanyecz.roombooking.booking.dto.BookingResponse;
 import hu.gchovanyecz.roombooking.booking.dto.CreateBookingRequest;
 import hu.gchovanyecz.roombooking.booking.repository.BookingRepository;
+import hu.gchovanyecz.roombooking.common.exception.FieldViolation;
 import hu.gchovanyecz.roombooking.room.domain.Room;
 import hu.gchovanyecz.roombooking.room.repository.RoomRepository;
 import hu.gchovanyecz.roombooking.room.service.RoomNotFoundException;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static hu.gchovanyecz.roombooking.booking.repository.BookingSpecifications.endingAfter;
+import static hu.gchovanyecz.roombooking.booking.repository.BookingSpecifications.inRoom;
+import static hu.gchovanyecz.roombooking.booking.repository.BookingSpecifications.startingBefore;
 
 @Service
 @Transactional(readOnly = true)
@@ -27,6 +35,38 @@ public class BookingService {
 		this.bookingRepository = bookingRepository;
 		this.roomRepository = roomRepository;
 		this.timeRules = timeRules;
+	}
+
+	/**
+	 * Lists bookings ordered by start time, optionally restricted to a room and to those overlapping
+	 * {@code [from, to)}.
+	 *
+	 * @throws RoomNotFoundException if {@code roomId} is given but the room does not exist
+	 * @throws BookingValidationException if both {@code from} and {@code to} are given and {@code to} is not after
+	 * {@code from}
+	 */
+	public List<BookingResponse> findAll(Long roomId, Instant from, Instant to) {
+		if (roomId != null && !roomRepository.existsById(roomId)) {
+			throw new RoomNotFoundException(roomId);
+		}
+		if (from != null && to != null && !to.isAfter(from)) {
+			throw new BookingValidationException("Érvénytelen szűrési időszak.",
+					List.of(new FieldViolation("to", "A szűrés végének a kezdete után kell lennie.")));
+		}
+
+		Specification<Booking> filter = Specification.allOf(inRoom(roomId), endingAfter(from), startingBefore(to));
+		return bookingRepository.findAll(filter, Sort.by("startTime", "id")).stream()
+			.map(BookingResponse::from)
+			.toList();
+	}
+
+	/**
+	 * @throws BookingNotFoundException if the booking does not exist
+	 */
+	public BookingResponse getById(long bookingId) {
+		return bookingRepository.findById(bookingId)
+			.map(BookingResponse::from)
+			.orElseThrow(() -> new BookingNotFoundException(bookingId));
 	}
 
 	/**
@@ -56,6 +96,16 @@ public class BookingService {
 		Booking booking = new Booking(room, normalizeTitle(request.title()), request.startTime(), request.endTime());
 		// Flush now so that an exclusion constraint violation surfaces here, not at commit time.
 		return BookingResponse.from(bookingRepository.saveAndFlush(booking));
+	}
+
+	/**
+	 * @throws BookingNotFoundException if the booking does not exist
+	 */
+	@Transactional
+	public void delete(long bookingId) {
+		Booking booking = bookingRepository.findById(bookingId)
+			.orElseThrow(() -> new BookingNotFoundException(bookingId));
+		bookingRepository.delete(booking);
 	}
 
 	private static String normalizeTitle(String title) {

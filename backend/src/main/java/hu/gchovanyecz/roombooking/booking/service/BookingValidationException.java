@@ -5,14 +5,18 @@ import java.util.List;
 import hu.gchovanyecz.roombooking.common.exception.FieldViolation;
 
 /**
- * The requested booking breaks a time rule (order, past start, grid, duration); mapped to HTTP 400.
+ * The booking request or listing filter breaks a time rule (order, past start, grid, duration); mapped to HTTP 400.
  */
 public class BookingValidationException extends RuntimeException {
 
 	private final List<FieldViolation> violations;
 
 	public BookingValidationException(List<FieldViolation> violations) {
-		super("A foglalás nem felel meg a foglalási szabályoknak.");
+		this("A foglalás nem felel meg a foglalási szabályoknak.", violations);
+	}
+
+	public BookingValidationException(String message, List<FieldViolation> violations) {
+		super(message);
 		this.violations = List.copyOf(violations);
 	}
 
