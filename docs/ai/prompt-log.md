@@ -125,3 +125,5 @@ Az AI ezek alapján frissítette a jegyeket és az áttekintő jegyet.
 - Élő ellenőrzés: elindította az alkalmazást, és meghívta a végpontokat. A `/v3/api-docs`-ban megjelenik a két útvonal a `Rooms` tag alatt.
 
 **Eredmény:** `./mvnw verify` zöld, 20 teszt.
+
+**Hiba és javítás:** az AI `git add -A`-val véletlenül commitolta a frontend segéd munkakönyvtárát (`.claude/worktrees/...`, beágyazott git repóként). A commit átírását (force push) a Claude Code jogosultságkezelése nem engedte, ezért egy külön javító commit vette ki a fájlt, és a `.claude/` mappa bekerült a `.gitignore`-ba. Tanulság: a commitok előtt a `git status` kimenetét ellenőrizni kell.
