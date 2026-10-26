@@ -20,6 +20,8 @@
     </div>
   </header>
 
+  <app-booking-form [rooms]="rooms()" [roomId]="selectedRoomId()" (booked)="loadBookings()" />
+
   @if (roomsStatus() === 'error') {
     <p class="state state--error" role="alert">
       A tárgyalókat nem sikerült betölteni, a szűrő most nem használható.

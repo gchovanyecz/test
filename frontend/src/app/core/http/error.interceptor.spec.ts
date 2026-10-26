@@ -1,7 +1,11 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, HttpContext, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { errorInterceptor, GENERIC_ERROR_MESSAGE } from './error.interceptor';
+import {
+  errorInterceptor,
+  GENERIC_ERROR_MESSAGE,
+  SKIP_ERROR_NOTIFICATION,
+} from './error.interceptor';
 import { NotificationService } from '../notifications/notification.service';
 
 describe('errorInterceptor', () => {
@@ -54,6 +58,29 @@ describe('errorInterceptor', () => {
     });
 
     expect(notifications.notifications()[0].message).toBe(GENERIC_ERROR_MESSAGE);
+  });
+
+  it('skips the notification for a request that opts out, but still rethrows the error', () => {
+    let failed = false;
+    http
+      .get('/api/bookings', { context: new HttpContext().set(SKIP_ERROR_NOTIFICATION, true) })
+      .subscribe({ error: () => (failed = true) });
+
+    testing
+      .expectOne('/api/bookings')
+      .flush(
+        {
+          type: 'about:blank',
+          title: 'Conflict',
+          status: 409,
+          detail: 'Ütközés',
+          instance: '/api/bookings',
+        },
+        { status: 409, statusText: 'Conflict' },
+      );
+
+    expect(failed).toBe(true);
+    expect(notifications.notifications().length).toBe(0);
   });
 
   it('does not add a notification for successful requests', () => {

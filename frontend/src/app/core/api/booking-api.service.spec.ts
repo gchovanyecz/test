@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { BookingApiService } from './booking-api.service';
+import { SKIP_ERROR_NOTIFICATION } from '../http/error.interceptor';
 import { BookingResponse, CreateBookingRequest } from '../models/booking.model';
 
 const booking: BookingResponse = {
@@ -71,6 +72,7 @@ describe('BookingApiService', () => {
     const req = http.expectOne('/api/bookings');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual(body);
+    expect(req.request.context.get(SKIP_ERROR_NOTIFICATION)).toBe(true);
     req.flush(booking, { status: 201, statusText: 'Created' });
   });
 
