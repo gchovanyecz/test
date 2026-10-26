@@ -108,3 +108,22 @@ Az AI ezek alapján frissítette a jegyeket és az áttekintő jegyet.
 - Tesztek: standalone MockMvc egy csak tesztben létező controllerrel. Az első futásnál mind a 7 teszt 404-et kapott, mert a teszt-controllerről lehagyta a `@RestController` annotációt (attól tartott, hogy más tesztek is felszednék). Kiderült, hogy a Spring Boot a tesztosztályok belső osztályait eleve kizárja a szkennelésből, ezért visszatette.
 
 **Eredmény:** `./mvnw verify` zöld, 14 teszt.
+
+---
+
+## 7. #3 Tárgyalók végpont, Node 24 a frontendhez (2026-10-26)
+
+**Prompt:** „átnéztem a #6-ot, és beengedtem. telepítheted a 24-es node verziót, de nvm-et használok, azzal telepítsd.”
+
+**AI:**
+- Node 24.22.1-et telepített nvm-mel. Az nvm alapértelmezett verziója (22.15.1) változatlan maradt.
+- A frontend segédet (#9) a Node 24-gyel és a legfrissebb Angularral (22.2.4) indította újra. A segéd `frontend/.nvmrc` fájlt is kapott feladatul.
+- Közben a #3-at csinálta:
+  - `GET /api/rooms` (név szerint rendezve) és `GET /api/rooms/{id}` (404, ha nincs ilyen);
+  - `RoomResponse` DTO, `RoomService`, `RoomController` OpenAPI annotációkkal.
+- Tesztek: `@WebMvcTest` (200, 404, nem numerikus ID → 400) és integrációs teszt a seed adatokkal.
+- Élő ellenőrzés: elindította az alkalmazást, és meghívta a végpontokat. A `/v3/api-docs`-ban megjelenik a két útvonal a `Rooms` tag alatt.
+
+**Eredmény:** `./mvnw verify` zöld, 20 teszt.
+
+**Hiba és javítás:** az AI `git add -A`-val véletlenül commitolta a frontend segéd munkakönyvtárát (`.claude/worktrees/...`, beágyazott git repóként). A commit átírását (force push) a Claude Code jogosultságkezelése nem engedte, ezért egy külön javító commit vette ki a fájlt, és a `.claude/` mappa bekerült a `.gitignore`-ba. Tanulság: a commitok előtt a `git status` kimenetét ellenőrizni kell.
