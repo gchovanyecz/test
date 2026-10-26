@@ -1,0 +1,67 @@
+<section class="page">
+  <header class="page__header">
+    <h1>Foglalások</h1>
+    <div class="filter">
+      <label class="filter__label" for="room-filter">Tárgyaló</label>
+      <select
+        id="room-filter"
+        #roomFilter
+        class="filter__select"
+        [disabled]="roomsStatus() !== 'loaded'"
+        (change)="onRoomFilterChange(roomFilter.value)"
+      >
+        <option value="" [selected]="selectedRoomId() === null">Összes tárgyaló</option>
+        @for (room of rooms(); track room.id) {
+          <option [value]="room.id" [selected]="room.id === selectedRoomId()">
+            {{ room.name }}
+          </option>
+        }
+      </select>
+    </div>
+  </header>
+
+  @if (roomsStatus() === 'error') {
+    <p class="state state--error" role="alert">
+      A tárgyalókat nem sikerült betölteni, a szűrő most nem használható.
+      <button type="button" class="retry" (click)="loadRooms()">Újrapróbálás</button>
+    </p>
+  }
+
+  @if (bookingsStatus() === 'loading') {
+    <p class="state" role="status">Betöltés…</p>
+  } @else if (bookingsStatus() === 'error') {
+    <div class="state state--error" role="alert">
+      <p>A foglalásokat nem sikerült betölteni.</p>
+      <button type="button" class="retry" (click)="loadBookings()">Újrapróbálás</button>
+    </div>
+  } @else if (bookings().length === 0) {
+    <p class="state">Nincs foglalás</p>
+  } @else {
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">Cím</th>
+            <th scope="col">Tárgyaló</th>
+            <th scope="col">Dátum</th>
+            <th scope="col">Időpont</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (booking of bookings(); track booking.id) {
+            <tr>
+              <td [class.table__placeholder]="!booking.title?.trim()">
+                {{ displayTitle(booking.title) }}
+              </td>
+              <td>{{ booking.roomName }}</td>
+              <td>
+                <time [attr.datetime]="booking.startTime">{{ formatDate(booking.startTime) }}</time>
+              </td>
+              <td>{{ formatTimes(booking.startTime, booking.endTime) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>
