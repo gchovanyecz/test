@@ -139,6 +139,39 @@ describe('BookingsComponent', () => {
     all.flush(bookings);
   });
 
+  it('reloads the list with the current room filter after a booking is saved', async () => {
+    http.expectOne((req) => req.url === '/api/bookings').flush(bookings);
+    flushRooms();
+
+    select().value = '2';
+    select().dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    http.expectOne((req) => req.url === '/api/bookings').flush([bookings[1]]);
+    fixture.detectChanges();
+
+    const form = element().querySelector('app-booking-form') as HTMLElement;
+    const typeInto = (id: string, value: string): void => {
+      const input = form.querySelector(`#${id}`) as HTMLInputElement;
+      input.value = value;
+      input.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+    typeInto('booking-date', '2030-01-07');
+    typeInto('booking-start', '09:00');
+    typeInto('booking-end', '10:00');
+    (form.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    fixture.detectChanges();
+
+    const created = http.expectOne('/api/bookings');
+    expect(created.request.body.roomId).toBe(2);
+    created.flush(bookings[1], { status: 201, statusText: 'Created' });
+    fixture.detectChanges();
+
+    const reloaded = http.expectOne((req) => req.url === '/api/bookings');
+    expect(reloaded.request.params.get('roomId')).toBe('2');
+    reloaded.flush([bookings[1]]);
+  });
+
   it('shows an inline error with a retry button when the bookings fail to load', () => {
     http
       .expectOne((req) => req.url === '/api/bookings')

@@ -1,0 +1,98 @@
+<section class="booking-form" aria-labelledby="booking-form-title">
+  <h2 id="booking-form-title" class="booking-form__title">Új foglalás</h2>
+
+  <form class="booking-form__form" novalidate [formGroup]="form" (ngSubmit)="submit()">
+    <div class="field field--room">
+      <label class="field__label" for="booking-room">Tárgyaló</label>
+      <select
+        id="booking-room"
+        class="field__control"
+        formControlName="roomId"
+        [attr.aria-invalid]="errorFor('roomId') ? 'true' : null"
+        [attr.aria-describedby]="errorFor('roomId') ? 'booking-room-error' : null"
+      >
+        <option [ngValue]="null">Válasszon tárgyalót…</option>
+        @for (room of rooms(); track room.id) {
+          <option [ngValue]="room.id">{{ room.name }}</option>
+        }
+      </select>
+      @if (errorFor('roomId'); as message) {
+        <p id="booking-room-error" class="field__error">{{ message }}</p>
+      }
+    </div>
+
+    <div class="field field--title">
+      <label class="field__label" for="booking-title"
+        >Cím <span class="field__optional">(opcionális)</span></label
+      >
+      <input
+        id="booking-title"
+        type="text"
+        class="field__control"
+        formControlName="title"
+        autocomplete="off"
+        [attr.aria-invalid]="errorFor('title') ? 'true' : null"
+        [attr.aria-describedby]="errorFor('title') ? 'booking-title-error' : null"
+      />
+      @if (errorFor('title'); as message) {
+        <p id="booking-title-error" class="field__error">{{ message }}</p>
+      }
+    </div>
+
+    <div class="field field--date">
+      <label class="field__label" for="booking-date">Dátum</label>
+      <input
+        id="booking-date"
+        type="date"
+        class="field__control"
+        formControlName="date"
+        [attr.aria-invalid]="errorFor('date') ? 'true' : null"
+        [attr.aria-describedby]="errorFor('date') ? 'booking-date-error' : null"
+      />
+      @if (errorFor('date'); as message) {
+        <p id="booking-date-error" class="field__error">{{ message }}</p>
+      }
+    </div>
+
+    <div class="field field--time">
+      <label class="field__label" for="booking-start">Kezdés</label>
+      <input
+        id="booking-start"
+        type="time"
+        step="900"
+        class="field__control"
+        formControlName="startTime"
+        [attr.aria-invalid]="errorFor('startTime') ? 'true' : null"
+        [attr.aria-describedby]="errorFor('startTime') ? 'booking-start-error' : null"
+      />
+      @if (errorFor('startTime'); as message) {
+        <p id="booking-start-error" class="field__error">{{ message }}</p>
+      }
+    </div>
+
+    <div class="field field--time">
+      <label class="field__label" for="booking-end">Befejezés</label>
+      <input
+        id="booking-end"
+        type="time"
+        step="900"
+        class="field__control"
+        formControlName="endTime"
+        [attr.aria-invalid]="errorFor('endTime') ? 'true' : null"
+        [attr.aria-describedby]="errorFor('endTime') ? 'booking-end-error' : null"
+      />
+      @if (errorFor('endTime'); as message) {
+        <p id="booking-end-error" class="field__error">{{ message }}</p>
+      }
+    </div>
+
+    <div class="booking-form__actions">
+      <button type="submit" class="booking-form__submit" [disabled]="submitting() || !canSubmit()">
+        {{ submitting() ? 'Mentés…' : 'Foglalás leadása' }}
+      </button>
+      @if (formError(); as message) {
+        <p class="booking-form__error" role="alert">{{ message }}</p>
+      }
+    </div>
+  </form>
+</section>

@@ -1,6 +1,7 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { SKIP_ERROR_NOTIFICATION } from '../http/error.interceptor';
 import { BookingQuery, BookingResponse, CreateBookingRequest } from '../models/booking.model';
 
 @Injectable({ providedIn: 'root' })
@@ -25,8 +26,14 @@ export class BookingApiService {
     return this.http.get<BookingResponse>(`/api/bookings/${id}`);
   }
 
+  /**
+   * The only caller is the booking form, which shows failures inline, so the global error
+   * notification is skipped to avoid showing the same error twice.
+   */
   create(request: CreateBookingRequest): Observable<BookingResponse> {
-    return this.http.post<BookingResponse>('/api/bookings', request);
+    return this.http.post<BookingResponse>('/api/bookings', request, {
+      context: new HttpContext().set(SKIP_ERROR_NOTIFICATION, true),
+    });
   }
 
   adminDelete(id: number): Observable<void> {

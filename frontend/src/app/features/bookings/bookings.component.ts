@@ -8,6 +8,7 @@ import { displayTitle, formatBookingDate, formatTimeRange } from '../../core/for
 import { BookingResponse } from '../../core/models/booking.model';
 import { RoomResponse } from '../../core/models/room.model';
 import { LoadStatus } from '../../shared/load-status';
+import { BookingFormComponent } from './booking-form/booking-form.component';
 
 /** Parses the `roomId` filter; anything that is not a positive integer means "all rooms". */
 function parseRoomId(value: string | null): number | null {
@@ -22,6 +23,7 @@ function parseRoomId(value: string | null): number | null {
   selector: 'app-bookings',
   templateUrl: './bookings.component.html',
   styleUrl: './bookings.component.css',
+  imports: [BookingFormComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BookingsComponent {
