@@ -72,8 +72,10 @@ public class BookingService {
 	/**
 	 * Creates a booking if it satisfies the time rules and does not overlap another booking of the same room.
 	 * <p>
-	 * The overlap check gives a descriptive 409 response; the database exclusion constraint still guards against
-	 * two concurrent requests that both pass this check.
+	 * The room row is locked first, so concurrent requests for the same room run one after the other and the loser
+	 * sees the winner's booking in the overlap check (409 with the conflicting booking). Without the lock, concurrent
+	 * inserts can deadlock in PostgreSQL while checking the exclusion constraint. The constraint stays as the final
+	 * guarantee against overlaps.
 	 *
 	 * @throws BookingValidationException if a time rule is broken
 	 * @throws RoomNotFoundException if the room does not exist
@@ -83,7 +85,7 @@ public class BookingService {
 	public BookingResponse create(CreateBookingRequest request) {
 		timeRules.validate(request.startTime(), request.endTime());
 
-		Room room = roomRepository.findById(request.roomId())
+		Room room = roomRepository.findByIdForUpdate(request.roomId())
 			.orElseThrow(() -> new RoomNotFoundException(request.roomId()));
 
 		List<Booking> overlapping = bookingRepository.findOverlapping(room.getId(), request.startTime(),
