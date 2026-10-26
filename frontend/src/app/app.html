@@ -1,0 +1,16 @@
+<header class="app-header">
+  <div class="app-header__inner">
+    <a class="app-brand" routerLink="/bookings">Tárgyalófoglalás</a>
+    <nav class="app-nav" aria-label="Fő navigáció">
+      <a class="app-nav__link" routerLink="/rooms" routerLinkActive="app-nav__link--active">Tárgyalók</a>
+      <a class="app-nav__link" routerLink="/bookings" routerLinkActive="app-nav__link--active">Foglalások</a>
+      <a class="app-nav__link" routerLink="/admin" routerLinkActive="app-nav__link--active">Admin</a>
+    </nav>
+  </div>
+</header>
+
+<main class="app-main">
+  <router-outlet />
+</main>
+
+<app-toast />
