@@ -51,7 +51,7 @@ class BookingServiceTests {
 	@Test
 	void createsBookingWhenRoomIsFree() {
 		Room room = room(1L, "Budapest");
-		given(roomRepository.findById(1L)).willReturn(Optional.of(room));
+		given(roomRepository.findByIdForUpdate(1L)).willReturn(Optional.of(room));
 		given(bookingRepository.findOverlapping(1L, NINE, TEN)).willReturn(List.of());
 		given(bookingRepository.saveAndFlush(any())).willAnswer(invocation -> withId(invocation.getArgument(0), 5L));
 
@@ -67,7 +67,7 @@ class BookingServiceTests {
 
 	@Test
 	void storesBlankTitleAsNull() {
-		given(roomRepository.findById(1L)).willReturn(Optional.of(room(1L, "Budapest")));
+		given(roomRepository.findByIdForUpdate(1L)).willReturn(Optional.of(room(1L, "Budapest")));
 		given(bookingRepository.findOverlapping(1L, NINE, TEN)).willReturn(List.of());
 		given(bookingRepository.saveAndFlush(any())).willAnswer(invocation -> withId(invocation.getArgument(0), 5L));
 
@@ -80,7 +80,7 @@ class BookingServiceTests {
 
 	@Test
 	void rejectsOverlappingBookingWithTheEarliestConflict() {
-		given(roomRepository.findById(1L)).willReturn(Optional.of(room(1L, "Budapest")));
+		given(roomRepository.findByIdForUpdate(1L)).willReturn(Optional.of(room(1L, "Budapest")));
 		Booking existing = withId(new Booking(room(1L, "Budapest"), null, NINE.minusSeconds(1800), NINE.plusSeconds(1800)), 3L);
 		given(bookingRepository.findOverlapping(1L, NINE, TEN)).willReturn(List.of(existing));
 
@@ -95,7 +95,7 @@ class BookingServiceTests {
 
 	@Test
 	void rejectsUnknownRoom() {
-		given(roomRepository.findById(99L)).willReturn(Optional.empty());
+		given(roomRepository.findByIdForUpdate(99L)).willReturn(Optional.empty());
 
 		assertThatThrownBy(() -> bookingService.create(new CreateBookingRequest(99L, null, NINE, TEN)))
 			.isInstanceOf(RoomNotFoundException.class);

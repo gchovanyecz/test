@@ -201,3 +201,53 @@ Az AI ezek alapján frissítette a jegyeket és az áttekintő jegyet.
 - Élő ellenőrzés: a 8080-as portot a Docker segéd compose-a foglalta, ezért az alkalmazás a 18080-as porton futott. Így derült ki, hogy a nyilvános útvonalon a `DELETE` valójában 405-öt ad, a teszt viszont 404-et várt. A teszt hamisan ment át, mert csak az admin controller töltődött be. Javítva.
 
 **Eredmény:** `./mvnw verify` zöld, 62 teszt.
+
+---
+
+## 11. Segédek eredményei: #11, #12, #13 (2026-10-26/27)
+
+**AI (segédek, Haiku 5.5):**
+- **#13 Docker:**
+  - két Dockerfile kétlépcsős builddel;
+  - nginx proxy újrafeloldással, így a backend újraindítása után is működik;
+  - compose healthcheckekkel.
+  Élőben tiszta állapotból indította (az összes URL működött), utána mindent eltakarított. Észrevette, hogy a PostgreSQL 18 máshová teszi az adatkönyvtárat, és ehhez igazította a volume csatolási pontját.
+- **#11 Foglalási űrlap:**
+  - kliensoldali validáció a backend szabályai szerint;
+  - helyi idő → UTC átváltás, a téli/nyári óraátállításkor nem létező időpontot visszautasítja;
+  - az interceptorban egy `HttpContextToken` kapcsoló kikapcsolja a globális hibaértesítést, így nincs dupla hibaüzenet;
+  - a 400-as válasz mezőhibái a mezők alatt, ütközésnél (409) az ütköző foglalás időpontja jelenik meg.
+- **#12 Admin nézet:** natív `<dialog>` megerősítő ablak, sorszintű tiltás törlés közben.
+- A fő AI mindhármat átnézte: a teszteket és a buildet maga is lefuttatta, a lényeges kódot átolvasta, a compose fájlt validálta.
+
+---
+
+## 12. #8 Kritikus tesztek és egy valódi konkurenciahiba (2026-10-27)
+
+**Prompt:** „mindegyik PR bement.”
+
+**AI:**
+- Három független jegyet adott ki segédeknek:
+  - **#7 Swagger:** a 18081-es porton ellenőrizhet;
+  - **#14 README:** a 8080/4200 portok neki vannak fenntartva a Docker-próbához;
+  - **#16 CI.**
+- A #8-at maga csinálta:
+  - **Ütközési mátrix valódi PostgreSQL-en.** A jegy Mockito unit teszteket írt elő, de az átfedésről a `findOverlapping` lekérdezés dönt, ezért a mock semmit nem bizonyítana. Az esetek:
+    - átfedés az elején és a végén;
+    - az új foglalás tartalmazza a meglévőt, illetve benne van;
+    - azonos intervallum;
+    - azonos kezdés vagy befejezés;
+    - szomszédos és távoli foglalások;
+    - más tárgyaló;
+    - a legkorábbi ütközés jelentése.
+
+    Paraméterezett teszt, 13 eset.
+  - **Párhuzamos teszt a valódi HTTP-rétegen át:** 8 kliens egyszerre foglalja ugyanazt az idősávot, 3 ismétléssel.
+- **Valódi hibát talált:** a párhuzamos teszt 3 futásból 2-szer elbukott, a vesztes kérések 409 helyett **500**-at kaptak. A logból kiderült, hogy a PostgreSQL az exclusion constraint ellenőrzése közben **holtpontot (deadlock)** észlelt, és a megszakított tranzakciók `CannotAcquireLockException`-ként jöttek vissza.
+  - **Javítás:** a foglalás előtt a service zárolja a tárgyaló sorát (`SELECT … FOR UPDATE`, `@Lock(PESSIMISTIC_WRITE)`). Így az ugyanarra a tárgyalóra érkező kérések sorban futnak, a vesztes már látja a nyertes foglalását, és rendes 409-et kap. A más tárgyalókra érkező kérések nem várnak egymásra. Az exclusion constraint végső biztosítéknak megmarad.
+  - A javítás után a teljes tesztcsomag és két külön futtatás is zöld, holtpont nélkül.
+- **Mockito-figyelmeztetés:** a Mockito önmagát csatolta agentként, ami miatt minden futásnál figyelmeztetés jelent meg. A Mockito dokumentációja szerint Java agentként töltődik be (`maven-dependency-plugin` `properties` + surefire `-javaagent`), így a figyelmeztetés megszűnt.
+
+**Tanulság:** a korábbi PR-ok azt állították, hogy a DB-szabály „párhuzamos kérésnél is 409-et ad”. Ez csak részben volt igaz: az ütközés valóban nem jött létre, de a válasz 500 lett. Ezt csak a valódi párhuzamos teszt mutatta ki.
+
+**Eredmény:** `./mvnw verify` zöld, 78 teszt.
