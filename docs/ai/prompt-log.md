@@ -296,3 +296,22 @@ Az AI ezek alapján frissítette a jegyeket és az áttekintő jegyet.
   - `docs/ai/README.md` véglegesítése: eszközök és modellek, munkafolyamat, a folyamat által elkapott hibák.
 
 **Eredmény:** a feladat 1–10. követelménye teljesül, és ellenőrizve van. Egy dolog marad: a session-átiratot nekem kell exportálnom a Claude Code `/export` parancsával a `docs/ai/sessions/` mappába, mert ezt a parancsot az AI nem tudja futtatni.
+
+---
+
+## 15. Session-átiratok (2026-10-27)
+
+**Prompt:** „a /export mappát holtalálom?” Majd: „tisztított átirat”.
+
+**AI:**
+- Elmagyarázta, hogy az `/export` parancs, nem mappa. A desktop app saját export eszközével elkészítette a teljes exportot (~6 MB zip: a fő session és a segédek átirata).
+- Mielőtt bármi a repóba került volna, átnézte az export tartalmát. A nyers átirat a beszélgetésen kívül a teljes háttérkörnyezetet is tartalmazza: a céges e-mail címet és a gépen beállított, a feladathoz nem tartozó céges rendszerek neveit, több ezer előfordulással. Ezért javasolta a tisztított átiratot; a döntés az enyém volt.
+- A tisztítást nem segédekre bízta (bár a plugin ezt kérte), hanem egy determinisztikus scriptre:
+  - egységes szabályok minden fájlra;
+  - a kitakarás géppel ellenőrizhető, a script hibával leáll, ha bármelyik kitakarandó név bent marad.
+- Átnézés közben három hibát javított:
+  - egy belső eszköz hibája rossz eszközhívás alá került;
+  - a segédeknek szóló feladatleírás „Felhasználó” címkét kapott;
+  - és korábban 7 segédet említett, valójában 8 volt.
+
+**Eredmény:** 9 Markdown átirat a `docs/ai/sessions/` mappában, a kitakarás után egyik fájlban sincs céges adat.

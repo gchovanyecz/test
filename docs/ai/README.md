@@ -55,4 +55,4 @@ A napló ezeket részletesen leírja; itt csak a lényeg:
 
 ## Session-átiratok
 
-A Claude Code session teljes átiratát a Claude Code `/export` parancsával lehet menteni. Az exportált fájl a [sessions](sessions/) mappába kerül.
+A fő session és a 8 segéd tisztított, olvasható átirata a [sessions](sessions/) mappában van. A mappa README-je leírja, hogyan készültek, és mi maradt ki belőlük.
